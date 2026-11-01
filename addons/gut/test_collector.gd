@@ -107,7 +107,7 @@ func add_script(path):
 		return []
 
 	# SHORTCIRCUIT
-	if(!FileAccess.file_exists(path)):
+	if(!ResourceLoader.exists(path)):
 		# This check was added so tests could create dynmaic scripts and add
 		# them to be run through gut.  This helps cut down on creating test
 		# scripts to be used in test/resources.
@@ -274,4 +274,3 @@ func get_pending_count():
 	for s in scripts:
 		count += s.get_pending_count()
 	return count
-
