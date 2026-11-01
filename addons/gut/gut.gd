@@ -419,7 +419,7 @@ func _validate_hook_script(path):
 	if(path == ''):
 		return result
 
-	if(FileAccess.file_exists(path)):
+	if(ResourceLoader.exists(path)):
 		var inst = load(path).new()
 		if(inst and inst is GutHookScript):
 			result.instance = inst
@@ -961,30 +961,21 @@ func _get_files(path, prefix, suffix):
 	if(path == 'res://addons/gut'):
 		return [];
 
-	var d = DirAccess.open(path)
-	d.include_hidden = false
-	d.include_navigational = false
+	# MUST use ResourceLoader. FileAccess and DirAccess have
+	# limited awareness of how exported resources could be relocated/converted.
+	var d = ResourceLoader.list_directory(path)
 
-	# Traversing a directory is kinda odd.  You have to start the process of
-	# listing the contents of a directory with list_dir_begin then use get_next
-	# until it returns an empty string.  Then I guess you should end it.
-	d.list_dir_begin()
-	var fs_item = d.get_next()
-	var full_path = ''
-	while(fs_item != ''):
-		full_path = path.path_join(fs_item)
+	for fs_item in d:
+		var full_path = path.path_join(fs_item)
 
-		# MUST use FileAccess since d.file_exists returns false for exported
-		# projects
-		if(FileAccess.file_exists(full_path)):
+		# Exports can rewrite resources and directory structures,
+		# but ResourceLoader is export-aware and keeps the file paths stable
+		if(ResourceLoader.exists(full_path)):
 			if(fs_item.begins_with(prefix) and fs_item.ends_with(suffix)):
 				files.append(full_path)
-		# MUST use DirAccess, d.dir_exists is false for exported projects.
-		elif(include_subdirectories and DirAccess.dir_exists_absolute(full_path)):
+		# ResourceLoader.list_directory suffixes directories with "/"
+		elif(include_subdirectories and fs_item.ends_with("/")):
 			directories.append(full_path)
-
-		fs_item = d.get_next()
-	d.list_dir_end()
 
 	for dir in range(directories.size()):
 		var dir_files = _get_files(directories[dir], prefix, suffix)
@@ -1121,7 +1112,7 @@ func export_tests(path=_export_path):
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 func import_tests(path=_export_path):
-	if(!FileAccess.file_exists(path)):
+	if(!ResourceLoader.exists(path)):
 		_lgr.error(str('Cannot import tests:  the path [', path, '] does not exist.'))
 	else:
 		_test_collector.clear()
